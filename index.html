@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Punch In/Out</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2193b0, #6dd5ed);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            width: 600px;
+            margin-left: 25%;
+        }
+
+        .employee-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .punch-in {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .punch-out {
+            background: #f44336;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #cccccc;
+            transform: none;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #4CAF50;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .warning {
+            background: #fff8e1;
+            color: #ff9800;
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .admin-link a {
+            color: #2193b0;
+            text-decoration: none;
+        }
+
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
+
+        .current-time {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #2193b0;
+        }
+
+        .attendance-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            display: block;
+        }
+
+        .attendance-info h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .attendance-status {
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .full-day {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .half-day {
+            background: #fff8e1;
+            color: #ef6c00;
+        }
+
+        .absent {
+            background: #ffebee;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Employee Attendance System</h1>
+        </div>
+
+        <div class="card">
+            <div id="currentTime" class="current-time"></div>
+            <h2 style="margin-bottom: 20px; text-align: center;">Punch In/Out</h2>
+            <div class="employee-form">
+                <label style="font-weight:400;">Employee ID</label>
+                <input type="text" id="employeeId" placeholder="Enter Employee ID" maxlength="7">
+                <div class="buttons">
+                    <button id="punchInBtn" class="punch-in" onclick="punchIn()" disabled>Punch In</button>
+                    <button id="punchOutBtn" class="punch-out" onclick="punchOut()" disabled>Punch Out</button>
+                </div>
+            </div>
+            <div id="statusMessage" class="status-message"></div>
+            <div id="attendanceInfo" class="attendance-info" style="display: none;">
+                <h3>Today's Attendance</h3>
+                <div id="punchInTime"></div>
+                <div id="punchOutTime"></div>
+                <div id="hoursWorked"></div>
+                <div id="attendanceStatus" class="attendance-status"></div>
+            </div>
+            <div class="admin-link">
+                <a href="admin-dashboard.html" target="_blank">Admin Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Display and update current time
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('currentTime').textContent = now.toLocaleDateString(undefined, options);
+        }
+
+        // Update time every second
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        function showMessage(message, type) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.style.display = 'block';
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 3000);
+        }
+
+        function validateEmployeeId(id) {
+            // Check for spaces
+            if (id.includes(' ')) {
+                return false;
+            }
+            
+            // Check exact length of 7 characters
+            if (id.length !== 7) {
+                return false;
+            }
+            
+            // Check if ID starts with ATS0 and has 3 digits after that
+            const formatRegex = /^ATS0\d{3}$/;
+            if (!formatRegex.test(id)) {
+                return false;
+            }
+            
+            // Extract the last three digits
+            const lastThreeDigits = id.slice(-3);
+            
+            // Check if all three digits are zeros
+            if (lastThreeDigits === '000') {
+                return false;
+            }
+            
+            return true;
+        }
+
+        function isSameDay(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+
+        function hasAlreadyPunchedInToday(id) {
+            const attendanceData = JSON.parse(localStorage.getItem('attendanceData') || '[]');
+            const today = new Date();
+            
+            return attendanceData.some(record => {
+                const punchInDate = new Date(record.punchIn);
+                return record.id === id && isSameDay(punchInDate, today);
+            });
+        }
+
+        function getTodayAttendanceRecord(id) {
+            const attendanceData = JSON.parse(localStorage.getItem('attendanceData') || '[]');
+            const today = new Date();
+            
+            return attendanceData.find(record => {
+                const punchInDate = new Date(record.punchIn);
+                return record.id === id && isSameDay(punchInDate, today);
+            });
+        }
+
+        function calculateHoursWorked(punchIn, punchOut) {
+            const punchInTime = new Date(punchIn).getTime();
+            const punchOutTime = new Date(punchOut).getTime();
+            const diffMs = punchOutTime - punchInTime;
+            const diffHours = diffMs / (1000 * 60 * 60);
+            return diffHours;
+        }
+
+        function determineAttendanceStatus(hoursWorked) {
+            if (hoursWorked >= 8) {
+                return { status: 'Present', class: 'full-day' };
+            } else if (hoursWorked >= 4) {
+                return { status: 'Half Day Present', class: 'half-day' };
+            } else {
+                return { status: 'Absent', class: 'absent' };
+            }
+        }
+
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            
+            const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+            
+            return `${hours}:${formattedMinutes} ${ampm}`;
+        }
+
+        function validateAndUpdateButtons() {
+            const id = document.getElementById('employeeId').value;
+            const punchInBtn = document.getElementById('punchInBtn');
+            const punchOutBtn = document.getElementById('punchOutBtn');
+            
+            // First disable all buttons by default
+            punchInBtn.disabled = true;
+            punchOutBtn.disabled = true;
+            
+            // Clear any previous validation messages
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.style.display = 'none';
+            
+            // If no ID, keep buttons disabled
+            if (!id) {
+                return;
+            }
+            
+            // If ID doesn't pass validation, keep buttons disabled but show error
+            if (!validateEmployeeId(id)) {
+                if (id.length > 0) { // Only show error if user has started typing
+                    let errorMessage = '';
+                    
+                    if (id.includes(' ')) {
+                        errorMessage = 'Employee ID cannot contain spaces.';
+                    } else if (id.length !== 7) {
+                        errorMessage = 'Employee ID must be exactly 7 characters long.';
+                    } else if (!/^ATS0\d{3}$/.test(id)) {
+                        errorMessage = 'Employee ID must start with ATS0 followed by 3 digits.';
+                    } else if (id.slice(-3) === '000') {
+                        errorMessage = 'Last three digits cannot all be zeros.';
+                    }
+                    
+                    showMessage(errorMessage, 'error');
+                }
+                return;
+            }
+
+            // Check if employee has already punched in/out today
+            const record = getTodayAttendanceRecord(id);
+            
+            if (record) {
+                // If already punched in today
+                punchInBtn.disabled = true;
+                // Enable punch out only if not already punched out
+                punchOutBtn.disabled = record.status === 'out';
+            } else {
+                // No record for today, valid ID, can punch in
+                punchInBtn.disabled = false;
+                punchOutBtn.disabled = true;
+            }
+        }
+
+        function updateAttendanceInfo(record) {
+            const attendanceInfo = document.getElementById('attendanceInfo');
+            const punchInTimeElement = document.getElementById('punchInTime');
+            const punchOutTimeElement = document.getElementById('punchOutTime');
+            const hoursWorkedElement = document.getElementById('hoursWorked');
+            const attendanceStatusElement = document.getElementById('attendanceStatus');
+
+            if (!record) {
+                attendanceInfo.style.display = 'none';
+                return;
+            }
+
+            attendanceInfo.style.display = 'block';
+            punchInTimeElement.textContent = `Punch In: ${formatTime(record.punchIn)}`;
+
+            if (record.punchOut) {
+                const hoursWorked = calculateHoursWorked(record.punchIn, record.punchOut);
+                const roundedHours = Math.round(hoursWorked * 100) / 100;
+                const { status, class: statusClass } = determineAttendanceStatus(hoursWorked);
+
+                punchOutTimeElement.textContent = `Punch Out: ${formatTime(record.punchOut)}`;
+                hoursWorkedElement.textContent = `Hours Worked: ${roundedHours}`;
+                attendanceStatusElement.textContent = status;
+                attendanceStatusElement.className = `attendance-status ${statusClass}`;
+            } else {
+                punchOutTimeElement.textContent = 'Punch Out: Not yet punched out';
+                hoursWorkedElement.textContent = '';
+                attendanceStatusElement.textContent = 'In Progress';
+                attendanceStatusElement.className = 'attendance-status';
+            }
+        }
+
+        function punchIn() {
+            const id = document.getElementById('employeeId').value;
+
+            if (!id) {
+                showMessage('Please enter Employee ID', 'error');
+                return;
+            }
+
+            if (!validateEmployeeId(id)) {
+                // Error will be shown by the validateAndUpdateButtons function
+                return;
+            }
+
+            if (hasAlreadyPunchedInToday(id)) {
+                const record = getTodayAttendanceRecord(id);
+                showMessage('Employee has already punched in today', 'warning');
+                updateAttendanceInfo(record);
+                validateAndUpdateButtons();
+                return;
+            }
+
+            const attendance = {
+                id,
+                punchIn: new Date().toISOString(),
+                punchOut: null,
+                status: 'in'
+            };
+
+            let attendanceData = JSON.parse(localStorage.getItem('attendanceData') || '[]');
+            attendanceData.push(attendance);
+            localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+
+            showMessage('Successfully punched in!', 'success');
+            updateAttendanceInfo(attendance);
+            validateAndUpdateButtons();
+        }
+
+        function punchOut() {
+            const id = document.getElementById('employeeId').value;
+
+            if (!id) {
+                showMessage('Please enter Employee ID', 'error');
+                return;
+            }
+
+            if (!validateEmployeeId(id)) {
+                // Error will be shown by the validateAndUpdateButtons function
+                return;
+            }
+
+            let attendanceData = JSON.parse(localStorage.getItem('attendanceData') || '[]');
+            const today = new Date();
+            
+            // Find today's record for this employee that has status 'in'
+            const index = attendanceData.findIndex(record => {
+                const recordDate = new Date(record.punchIn);
+                return record.id === id && 
+                       record.status === 'in' && 
+                       isSameDay(recordDate, today);
+            });
+
+            if (index !== -1) {
+                const punchOutTime = new Date();
+                attendanceData[index].punchOut = punchOutTime.toISOString();
+                attendanceData[index].status = 'out';
+                
+                const hoursWorked = calculateHoursWorked(
+                    attendanceData[index].punchIn, 
+                    punchOutTime
+                );
+
+                // Determine attendance status based on hours worked
+                if (hoursWorked >= 8) {
+                    attendanceData[index].attendanceStatus = 'Present';
+                } else if (hoursWorked >= 4) {
+                    attendanceData[index].attendanceStatus = 'Half Day Present';
+                } else {
+                    attendanceData[index].attendanceStatus = 'Absent';
+                }
+
+                localStorage.setItem('attendanceData', JSON.stringify(attendanceData));
+                
+                showMessage('Successfully punched out!', 'success');
+                updateAttendanceInfo(attendanceData[index]);
+                validateAndUpdateButtons();
+            } else {
+                const record = getTodayAttendanceRecord(id);
+                if (record && record.status === 'out') {
+                    showMessage('Employee has already punched out today', 'warning');
+                    updateAttendanceInfo(record);
+                    validateAndUpdateButtons();
+                } else {
+                    showMessage('No active punch-in found for this employee', 'error');
+                }
+            }
+        }
+
+        // When the page loads, disable buttons by default and check if there's already a record
+        window.onload = function() {
+            const id = document.getElementById('employeeId').value;
+            validateAndUpdateButtons();
+            if (id) {
+                const record = getTodayAttendanceRecord(id);
+                if (record) {
+                    updateAttendanceInfo(record);
+                }
+            }
+        };
+
+        // Add real-time validation as user types
+        document.getElementById('employeeId').addEventListener('input', function() {
+            const id = this.value;
+            validateAndUpdateButtons();
+            if (id) {
+                const record = getTodayAttendanceRecord(id);
+                updateAttendanceInfo(record);
+            } else {
+                document.getElementById('attendanceInfo').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
